@@ -27,7 +27,7 @@ ActiveRecord::Base.establish_connection(
 
 DatabaseCleaner.strategy = :truncation
 
-ActiveRecord::Base.connection.execute(%{CREATE TABLE authors (id INTEGER PRIMARY KEY);})
+ActiveRecord::Base.connection.execute(%{CREATE TABLE authors (id INTEGER PRIMARY KEY, posts_count INTEGER DEFAULT 0);})
 ActiveRecord::Base.connection.execute(%{CREATE TABLE avatars (id INTEGER PRIMARY KEY, author_id INTEGER, destroyed_at DATETIME);})
 ActiveRecord::Base.connection.execute(%{CREATE TABLE categories (id INTEGER PRIMARY KEY);})
 ActiveRecord::Base.connection.execute(%{CREATE TABLE categorizations (id INTEGER PRIMARY KEY, category_id INTEGER, post_id INTEGER);})
@@ -80,6 +80,14 @@ class Comment < ActiveRecord::Base
   belongs_to :commenter
 
   has_many :likes, as: :likeable, dependent: :destroy
+
+  after_commit :set_after_committed_flag, on: :destroy
+
+  attr_reader :after_committed
+
+  def set_after_committed_flag
+    @after_committed = true
+  end
 end
 
 class Commenter < ActiveRecord::Base
@@ -95,7 +103,7 @@ end
 class Post < ActiveRecord::Base
   include DestroyedAt
 
-  belongs_to :author
+  belongs_to :author, counter_cache: true
   has_many :categories, through: :categorizations
   has_many :categorizations, dependent: :destroy
   has_many :comments, dependent: :destroy

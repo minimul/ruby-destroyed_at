@@ -40,6 +40,15 @@ describe 'destroying an activerecord instance' do
     post.update_callback_count.must_equal nil
   end
 
+  it 'decrements the counter cache' do
+    author = Author.create
+    post = author.posts.create
+
+    author.reload.posts_count.must_equal 1
+    post.destroy
+    author.reload.posts_count.must_equal 0
+  end
+
   it 'stays persisted after destruction' do
     post.destroy
     post.persisted?.must_equal true
@@ -260,3 +269,11 @@ describe 'destroying a child that destroys its parent on destroy' do
   end
 end
 
+describe 'destroying on object should call after_commit callback' do
+  it 'calls after_commit callback on: :destroy' do
+    comment = Comment.create
+    comment.destroy
+
+    comment.after_committed.must_equal true
+  end
+end
